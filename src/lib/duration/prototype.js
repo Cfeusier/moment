@@ -10,6 +10,7 @@ import { get, milliseconds, seconds, minutes, hours, days, months, years, weeks 
 import { humanize } from './humanize';
 import { toISOString } from './iso-string';
 import { lang, locale, localeData } from '../moment/locale';
+import { format } from './format';
 
 proto.abs            = abs;
 proto.add            = add;
@@ -40,9 +41,10 @@ proto.toString       = toISOString;
 proto.toJSON         = toISOString;
 proto.locale         = locale;
 proto.localeData     = localeData;
+proto.format         = format;
+proto.lang           = lang;
 
 // Deprecations
 import { deprecate } from '../utils/deprecate';
 
 proto.toIsoString = deprecate('toIsoString() is deprecated. Please use toISOString() instead (notice the capitals)', toISOString);
-proto.lang = lang;
