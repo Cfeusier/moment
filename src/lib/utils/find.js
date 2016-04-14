@@ -4,7 +4,8 @@ export default function find(arr, fn) {
     var index = 0,
         max = arr.length,
         match;
-    if (isFunction(fn)) {
+
+    if (!isFunction(fn)) {
         match = fn;
         fn = function (item) {
             return item === match;
