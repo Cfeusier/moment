@@ -13,32 +13,12 @@ import unique from '../utils/unique';
 import intersection from '../utils/intersection';
 import rest from '../utils/rest';
 import initial from '../utils/initial';
+import pad from '../utils/pad';
+import repeat from '../utils/repeat';
+import absCeil from '../utils/abs-ceil';
 
-function __configure (settings, config) {
-    config.forEach(function(setting) {
-        if (typeof setting === 'string' || isFunction(setting)) {
-            settings.template = setting;
-            return;
-        }
-        if (typeof setting === 'number') {
-            settings.precision = setting;
-            return;
-        }
-        if (isObject(setting)) {
-            extend(settings, setting);
-            return;
-        }
-    });
-}
 
-function __skipTrim (token) {
-    // return `true` if:
-    // the token is not the least moment token
-    // the token is a moment token that does not have a value
-    return !(token.isLeast || (token.type != null && token.wholeValue));
-}
-
-function __format () {
+export function format () {
     var tokenizer, tokens, types, typeMap, momentTypes, foundFirst, trimIndex,
         args = Array.prototype.slice.call(arguments),
         __copy = createDuration(this);
@@ -90,7 +70,7 @@ function __format () {
         // calculate integer and decimal value portions
         value = __copy.as(momentType);
 
-        wholeValue = (value > 0 ? Math.floor(value) : Math.ceil(value));
+        wholeValue = absCeil(value);
         decimalValue = value - wholeValue;
 
         // is this the least-significant moment token found?
@@ -135,10 +115,78 @@ function __format () {
         tokens = (settings.trim === 'left' ? rest : initial)(tokens, __skipTrim);
     }
 
-    // TODO: START HERE
+    // build output //
+
+    // run the map in reverse order if trimming from the right
+    if (settings.trim === 'right') {
+        tokens.reverse();
+    }
+
+    // the first moment token can have special handling
+    foundFirst = false;
+
+    tokens = map(tokens, function (token) {
+        var val, decVal;
+
+        if (!token.type) {
+            // if it is not a moment token, use the token as its own value
+            return token.token;
+        }
+
+        // apply negative precision formatting to the least-significant moment token
+        if (token.isLeast && (settings.precision < 0)) {
+            val = (Math.floor(token.wholeValue * Math.pow(10, settings.precision)) * Math.pow(10, -settings.precision)).toString();
+        } else {
+            val = token.wholeValue.toString();
+        }
+
+        // remove negative sign from the beginning
+        val = val.replace(/^\-/, '');
+
+        // apply token length formatting
+        // special handling for the first moment token that is not the most significant in a trimmed template
+        if (token.length > 1 && (foundFirst || token.isMost || settings.forceLength)) {
+            val = pad('0', val, token.length);
+        }
+
+        // add decimal value if precision > 0
+        if (token.isLeast && (settings.precision > 0)) {
+            decVal = token.decimalValue.toString().replace(/^\-/, '').split(/\.|e\-/);
+            switch (decVal.length) {
+                case 1:
+                    val += '.' + pad('0', decVal[0], settings.precision, true).slice(0, settings.precision);
+                    break;
+                case 2:
+                    val += '.' + pad('0', decVal[1], settings.precision, true).slice(0, settings.precision);
+                    break;
+                case 3:
+                    val += '.' + pad('0', repeat('0', (+decVal[2]) - 1) + (decVal[0] || '0') + decVal[1], settings.precision, true).slice(0, settings.precision);
+                    break;
+                default:
+                    throw 'Moment Duration Format: unable to parse token decimal value.';
+            }
+        }
+
+        // add a negative sign if the value is negative and token is most significant
+        if (token.isMost && token.value < 0) {
+            val = '-' + val;
+        }
+
+        foundFirst = true;
+
+        return val;
+    });
+
+    // undo the reverse if trimming from the right
+    if (settings.trim === 'right') {
+        tokens.reverse();
+    }
+
+    // return formatted output string
+    return tokens.join('');
 }
 
-__format.defaults = {
+format.defaults = {
 
     // token definitions
     escape: /\[(.+?)\]/,
@@ -208,80 +256,26 @@ __format.defaults = {
     }
 };
 
-export { __format as format };
+function __configure (settings, config) {
+    config.forEach(function(setting) {
+        if (typeof setting === 'string' || isFunction(setting)) {
+            settings.template = setting;
+            return;
+        }
+        if (typeof setting === 'number') {
+            settings.precision = setting;
+            return;
+        }
+        if (isObject(setting)) {
+            extend(settings, setting);
+            return;
+        }
+    });
+}
 
-// moment.duration.fn.format = function () {
-
-//         // build output
-
-//         // the first moment token can have special handling
-//         foundFirst = false;
-
-//         // run the map in reverse order if trimming from the right
-//         if (settings.trim === "right") {
-//             tokens.reverse();
-//         }
-
-//         tokens = map(tokens, function (token) {
-//             var val,
-//                 decVal;
-
-//             if (!token.type) {
-//                 // if it is not a moment token, use the token as its own value
-//                 return token.token;
-//             }
-
-//             // apply negative precision formatting to the least-significant moment token
-//             if (token.isLeast && (settings.precision < 0)) {
-//                 val = (Math.floor(token.wholeValue * Math.pow(10, settings.precision)) * Math.pow(10, -settings.precision)).toString();
-//             } else {
-//                 val = token.wholeValue.toString();
-//             }
-
-//             // remove negative sign from the beginning
-//             val = val.replace(/^\-/, "");
-
-//             // apply token length formatting
-//             // special handling for the first moment token that is not the most significant in a trimmed template
-//             if (token.length > 1 && (foundFirst || token.isMost || settings.forceLength)) {
-//                 val = padZero(val, token.length);
-//             }
-
-//             // add decimal value if precision > 0
-//             if (token.isLeast && (settings.precision > 0)) {
-//                 decVal = token.decimalValue.toString().replace(/^\-/, "").split(/\.|e\-/);
-//                 switch (decVal.length) {
-//                     case 1:
-//                         val += "." + padZero(decVal[0], settings.precision, true).slice(0, settings.precision);
-//                         break;
-
-//                     case 2:
-//                         val += "." + padZero(decVal[1], settings.precision, true).slice(0, settings.precision);
-//                         break;
-
-//                     case 3:
-//                         val += "." + padZero(repeatZero((+decVal[2]) - 1) + (decVal[0] || "0") + decVal[1], settings.precision, true).slice(0, settings.precision);
-//                         break;
-
-//                     default:
-//                         throw "Moment Duration Format: unable to parse token decimal value.";
-//                 }
-//             }
-
-//             // add a negative sign if the value is negative and token is most significant
-//             if (token.isMost && token.value < 0) {
-//                 val = "-" + val;
-//             }
-
-//             foundFirst = true;
-
-//             return val;
-//         });
-
-//         // undo the reverse if trimming from the right
-//         if (settings.trim === "right") {
-//             tokens.reverse();
-//         }
-
-//         return tokens.join("");
-//     };
+function __skipTrim (token) {
+    // return `true` if:
+    // the token is not the least moment token
+    // the token is a moment token that does not have a value
+    return !(token.isLeast || (token.type != null && token.wholeValue));
+}
