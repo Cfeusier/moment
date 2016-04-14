@@ -1,4 +1,4 @@
-export default function repeat(pad, qty) {
+export default function repeat(character, qty) {
     var result = '';
 
     // exit early if qty is 0, a negative number, or doesn't coerce to an integer
@@ -8,7 +8,7 @@ export default function repeat(pad, qty) {
     }
 
     while (qty) {
-        result += pad;
+        result += character;
         qty -= 1;
     }
 

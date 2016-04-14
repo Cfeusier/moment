@@ -12,8 +12,8 @@ import pluck from '../utils/pluck';
 import unique from '../utils/unique';
 import intersection from '../utils/intersection';
 import rest from '../utils/rest';
-import initial from '../utils/initial';
 import pad from '../utils/pad';
+import initial from '../utils/initial';
 import repeat from '../utils/repeat';
 import absCeil from '../utils/abs-ceil';
 
