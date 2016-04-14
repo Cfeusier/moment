@@ -11,6 +11,8 @@ import compact from '../utils/compact';
 import pluck from '../utils/pluck';
 import unique from '../utils/unique';
 import intersection from '../utils/intersection';
+import rest from '../utils/rest';
+import initial from '../utils/initial';
 
 function __configure (settings, config) {
     config.forEach(function(setting) {
@@ -27,6 +29,13 @@ function __configure (settings, config) {
             return;
         }
     });
+}
+
+function __skipTrim (token) {
+    // return `true` if:
+    // the token is not the least moment token
+    // the token is a moment token that does not have a value
+    return !(token.isLeast || (token.type != null && token.wholeValue));
 }
 
 function __format () {
@@ -74,8 +83,59 @@ function __format () {
         return pluck(tokens, 'token').join('');
     }
 
-    // TODO: start here
+    // calculate values for each token type in the template
+    each(momentTypes, function (momentType, index) {
+        var value, wholeValue, decimalValue, isLeast, isMost;
 
+        // calculate integer and decimal value portions
+        value = __copy.as(momentType);
+
+        wholeValue = (value > 0 ? Math.floor(value) : Math.ceil(value));
+        decimalValue = value - wholeValue;
+
+        // is this the least-significant moment token found?
+        isLeast = ((index + 1) === momentTypes.length);
+
+        // is this the most-significant moment token found?
+        isMost = (!index);
+
+        // update tokens array
+        // this algorithm does not assume anything about
+        // the order or frequency of any tokens
+        each(tokens, function (token) {
+            if (token.type === momentType) {
+                extend(token, {
+                    value: value,
+                    wholeValue: wholeValue,
+                    decimalValue: decimalValue,
+                    isLeast: isLeast,
+                    isMost: isMost
+                });
+
+                if (isMost) {
+                    // note the length of the most-significant moment token:
+                    // if it is greater than one and forceLength is not set, default forceLength to `true`
+                    // if the template is "h:mm:ss" and the moment value is 5 minutes, the user-friendly output is "5:00", not "05:00"
+                    // shouldn't pad the `minutes` token even though it has length of two
+                    // if the template is "hh:mm:ss", the user clearly wanted everything padded so we should output "05:00"
+                    // if the user wanted the full padded output, they can set `{ trim: false }` to get "00:05:00"
+                    if (settings.forceLength == null && token.length > 1) {
+                        settings.forceLength = true;
+                    }
+                }
+            }
+        });
+
+        // update remainder
+        __copy.subtract(wholeValue, momentType);
+    });
+
+    // trim tokens array
+    if (settings.trim) {
+        tokens = (settings.trim === 'left' ? rest : initial)(tokens, __skipTrim);
+    }
+
+    // TODO: START HERE
 }
 
 __format.defaults = {
@@ -151,69 +211,6 @@ __format.defaults = {
 export { __format as format };
 
 // moment.duration.fn.format = function () {
-
-
-
-//
-
-//         // calculate values for each token type in the template
-//         each(momentTypes, function (momentType, index) {
-//             var value, wholeValue, decimalValue, isLeast, isMost;
-
-//             // calculate integer and decimal value portions
-//             value = remainder.as(momentType);
-//             wholeValue = (value > 0 ? Math.floor(value) : Math.ceil(value));
-//             decimalValue = value - wholeValue;
-
-//             // is this the least-significant moment token found?
-//             isLeast = ((index + 1) === momentTypes.length);
-
-//             // is this the most-significant moment token found?
-//             isMost = (!index);
-
-//             // update tokens array
-//             // using this algorithm to not assume anything about
-//             // the order or frequency of any tokens
-//             each(tokens, function (token) {
-//                 if (token.type === momentType) {
-//                     extend(token, {
-//                         value: value,
-//                         wholeValue: wholeValue,
-//                         decimalValue: decimalValue,
-//                         isLeast: isLeast,
-//                         isMost: isMost
-//                     });
-
-//                     if (isMost) {
-//                         // note the length of the most-significant moment token:
-//                         // if it is greater than one and forceLength is not set, default forceLength to `true`
-//                         if (settings.forceLength == null && token.length > 1) {
-//                             settings.forceLength = true;
-//                         }
-
-//                         // rationale is this:
-//                         // if the template is "h:mm:ss" and the moment value is 5 minutes, the user-friendly output is "5:00", not "05:00"
-//                         // shouldn't pad the `minutes` token even though it has length of two
-//                         // if the template is "hh:mm:ss", the user clearly wanted everything padded so we should output "05:00"
-//                         // if the user wanted the full padded output, they can set `{ trim: false }` to get "00:05:00"
-//                     }
-//                 }
-//             });
-
-//             // update remainder
-//             remainder.subtract(wholeValue, momentType);
-//         });
-
-//         // trim tokens array
-//         if (settings.trim) {
-//             tokens = (settings.trim === "left" ? rest : initial)(tokens, function (token) {
-//                 // return `true` if:
-//                 // the token is not the least moment token (don't trim the least moment token)
-//                 // the token is a moment token that does not have a value (don't trim moment tokens that have a whole value)
-//                 return !(token.isLeast || (token.type != null && token.wholeValue));
-//             });
-//         }
-
 
 //         // build output
 
