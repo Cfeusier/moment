@@ -1,11 +1,16 @@
-import extend from '../utils/extend';
 import { createDuration } from './create';
 import isFunction from '../utils/is-function';
 import isObject from '../utils/is-object';
 import isArray from '../utils/is-array';
+import extend from '../utils/extend';
+import each from '../utils/each';
 import map from '../utils/map';
 import find from '../utils/find';
 import findLast from '../utils/find-last';
+import compact from '../utils/compact';
+import pluck from '../utils/pluck';
+import unique from '../utils/unique';
+import intersection from '../utils/intersection';
 
 function __configure (settings, config) {
     config.forEach(function(setting) {
@@ -61,7 +66,16 @@ function __format () {
         };
     }, this);
 
-    console.log(tokens);
+    // unique moment token types in the template (in order of descending magnitude)
+    momentTypes = intersection(types, unique(compact(pluck(tokens, 'type'))));
+
+    // exit early if there are no momentTypes
+    if (!momentTypes.length) {
+        return pluck(tokens, 'token').join('');
+    }
+
+    // TODO: start here
+
 }
 
 __format.defaults = {
@@ -139,13 +153,8 @@ export { __format as format };
 // moment.duration.fn.format = function () {
 
 
-//         // unique moment token types in the template (in order of descending magnitude)
-//         momentTypes = intersection(types, unique(compact(pluck(tokens, "type"))));
 
-//         // exit early if there are no momentTypes
-//         if (!momentTypes.length) {
-//             return pluck(tokens, "token").join("");
-//         }
+//
 
 //         // calculate values for each token type in the template
 //         each(momentTypes, function (momentType, index) {
